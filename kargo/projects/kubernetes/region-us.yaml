@@ -1,0 +1,177 @@
+# Region us: one branch of three stages. You start it by promoting us-drain with the Freight
+# (k3s version) you chose; us-upgrade and us-restore promote by themselves once the stage
+# upstream is verified. While us is drained its traffic goes to cz (failover, see NOTES.md).
+apiVersion: kargo.akuity.io/v1alpha1
+kind: Stage
+metadata:
+  name: us-drain
+spec:
+  requestedFreight:
+    - origin: {kind: Warehouse, name: k3s}
+      sources:
+        direct: true
+  promotionTemplate:
+    spec:
+      vars:
+        - name: repoURL
+          value: http://gitea-http.gitea.svc.cluster.local:3000/demo/gitops.git
+        - name: k3sVersion
+          value: ${{ imageFrom('docker.io/rancher/k3s-upgrade').Tag }}
+        - name: nodeVersion   # what kubelet reports: v1.37.2-k3s1 -> v1.37.2+k3s1
+          value: ${{ replace(imageFrom('docker.io/rancher/k3s-upgrade').Tag, '-k3s', '+k3s') }}
+      steps:
+        # Refuse, BEFORE touching DNS, an upgrade Kubernetes does not support: more than one minor
+        # at a time, or a downgrade. Checked against the version us runs now (its Plan in Git).
+        - uses: git-clone
+          config:
+            repoURL: ${{ vars.repoURL }}
+            checkout:
+              - {branch: main, path: ./guard}
+        - uses: yaml-parse
+          as: running
+          config:
+            path: ./guard/platform/k8s/overlays/us/plan-server.yaml
+            outputs:
+              - {name: version, fromExpression: spec.version}
+        - uses: fail
+          if: ${{ success() && int(split(vars.k3sVersion, '.')[1]) - int(split(outputs.running.version, '.')[1]) > 1 }}
+          config:
+            message: "refusing to drain us: it runs ${{ outputs.running.version }} and Kubernetes upgrades one minor at a time, so ${{ vars.k3sVersion }} would skip a minor. Promote the next minor first."
+        - uses: fail
+          if: ${{ success() && (int(split(vars.k3sVersion, '.')[1]) < int(split(outputs.running.version, '.')[1]) || (int(split(vars.k3sVersion, '.')[1]) == int(split(outputs.running.version, '.')[1]) && int(split(split(vars.k3sVersion, '.')[2], '-')[0]) < int(split(split(outputs.running.version, '.')[2], '-')[0]))) }}
+          config:
+            message: "refusing to drain us: it runs ${{ outputs.running.version }} and ${{ vars.k3sVersion }} would be a downgrade, which Kubernetes does not support."
+        - task: {name: set-rotation, kind: ClusterPromotionTask}
+          vars:
+            - {name: action, value: drain}
+            - {name: region, value: us}
+            - {name: receiver, value: cz}
+  verification:
+    analysisTemplates:
+      - {name: dns-region-absent, kind: ClusterAnalysisTemplate}
+    args:
+      - {name: region, value: us}
+---
+apiVersion: kargo.akuity.io/v1alpha1
+kind: Stage
+metadata:
+  name: us-upgrade
+spec:
+  requestedFreight:
+    - origin: {kind: Warehouse, name: k3s}
+      sources:
+        stages: [us-drain]
+        autoPromotionOptions: {selectionPolicy: MatchUpstream}
+  promotionTemplate:
+    spec:
+      vars:
+        - name: repoURL
+          value: http://gitea-http.gitea.svc.cluster.local:3000/demo/gitops.git
+        - name: k3sVersion
+          value: ${{ imageFrom('docker.io/rancher/k3s-upgrade').Tag }}
+        - name: nodeVersion   # what kubelet reports: v1.37.2-k3s1 -> v1.37.2+k3s1
+          value: ${{ replace(imageFrom('docker.io/rancher/k3s-upgrade').Tag, '-k3s', '+k3s') }}
+      steps:
+        - uses: git-clone
+          config:
+            repoURL: ${{ vars.repoURL }}
+            checkout:
+              - {branch: main, path: ./out}
+        # Same check as in us-drain, again here: nothing that reaches this stage (an old Freight
+        # re-promoted by hand, a rollback) may skip a minor or go back.
+        - uses: yaml-parse
+          as: running
+          config:
+            path: ./out/platform/k8s/overlays/us/plan-server.yaml
+            outputs:
+              - {name: version, fromExpression: spec.version}
+        - uses: fail
+          if: ${{ success() && int(split(vars.k3sVersion, '.')[1]) - int(split(outputs.running.version, '.')[1]) > 1 }}
+          config:
+            message: "refusing to upgrade us: it runs ${{ outputs.running.version }} and ${{ vars.k3sVersion }} would skip a minor."
+        - uses: fail
+          if: ${{ success() && (int(split(vars.k3sVersion, '.')[1]) < int(split(outputs.running.version, '.')[1]) || (int(split(vars.k3sVersion, '.')[1]) == int(split(outputs.running.version, '.')[1]) && int(split(split(vars.k3sVersion, '.')[2], '-')[0]) < int(split(split(outputs.running.version, '.')[2], '-')[0]))) }}
+          config:
+            message: "refusing to upgrade us: it runs ${{ outputs.running.version }} and ${{ vars.k3sVersion }} would be a downgrade."
+        # The desired Kubernetes version is a Plan in Git: System Upgrade Controller upgrades
+        # the control plane first, then the agents (the agent Plan waits for the server Plan).
+        - uses: yaml-update
+          config:
+            path: ./out/platform/k8s/overlays/us/plan-server.yaml
+            updates: [{key: spec.version, value: "${{ vars.k3sVersion }}"}]
+        - uses: yaml-update
+          config:
+            path: ./out/platform/k8s/overlays/us/plan-agent.yaml
+            updates: [{key: spec.version, value: "${{ vars.k3sVersion }}"}]
+        - uses: git-commit
+          as: commit
+          config:
+            path: ./out
+            message: "kubernetes ${{ vars.k3sVersion }} in us (Kargo)"
+        - uses: git-push
+          config:
+            path: ./out
+        # Argo CD applies the Plans; the Application is only Healthy once the Plans are Complete
+        # (custom health check in argocd-cm), so this step waits for the whole upgrade.
+        # If the Plans never complete (an upgrade that cannot finish) this step gives up after 6
+        # minutes and fails the Promotion: the region stays drained instead of waiting forever.
+        - uses: argocd-update
+          retry:
+            timeout: 6m
+          config:
+            apps:
+              - name: k8s-us
+                sources:
+                  - repoURL: ${{ vars.repoURL }}
+                    desiredRevision: ${{ outputs.commit.commit }}
+                    updateTargetRevision: false
+        # The Argo CD health shown right after the sync can still be the one from BEFORE the Plans
+        # changed, so it is not trusted: ask the region's API server (read-only token) until every
+        # node runs the new version, is Ready and is not cordoned. If that never happens THIS step
+        # fails the Promotion after 6 minutes: the region stays drained and the restore never starts.
+        - uses: http
+          retry:
+            timeout: 6m
+            errorThreshold: 60   # the API server restarts during the upgrade: connection errors are expected, keep polling
+          config:
+            url: ${{ secret('region-verifier').US_API }}/api/v1/nodes
+            headers:
+              - name: Authorization
+                value: Bearer ${{ secret('region-verifier').US_TOKEN }}
+            insecureSkipTLSVerify: true   # demo: the cluster CA is self-signed; use the CA in real life
+            timeout: 20s
+            pollInterval: 10s
+            successExpression: >-
+              len(response.body.items) > 0 && all(response.body.items, {
+                .status.nodeInfo.kubeletVersion == '${{ vars.nodeVersion }}' &&
+                .spec.unschedulable != true &&
+                any(.status.conditions, {.type == 'Ready' && .status == 'True'}) })
+  verification:
+    analysisTemplates:
+      - {name: gateway-smoke, kind: ClusterAnalysisTemplate}
+    args:
+      - {name: region, value: us}
+---
+apiVersion: kargo.akuity.io/v1alpha1
+kind: Stage
+metadata:
+  name: us-restore
+spec:
+  requestedFreight:
+    - origin: {kind: Warehouse, name: k3s}
+      sources:
+        stages: [us-upgrade]
+        autoPromotionOptions: {selectionPolicy: MatchUpstream}
+  promotionTemplate:
+    spec:
+      steps:
+        - task: {name: set-rotation, kind: ClusterPromotionTask}
+          vars:
+            - {name: action, value: restore}
+            - {name: region, value: us}
+            - {name: receiver, value: cz}
+  verification:
+    analysisTemplates:
+      - {name: dns-region-present, kind: ClusterAnalysisTemplate}
+    args:
+      - {name: region, value: us}

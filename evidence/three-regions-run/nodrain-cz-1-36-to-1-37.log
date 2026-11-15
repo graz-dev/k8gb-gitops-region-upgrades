@@ -1,0 +1,8 @@
+pushed at 14:47:23: cz -> v1.37.2-k3s1, region left in DNS rotation
+./scripts/k8s-nodrain.sh: line 35: 60950 Terminated: 15          kubectl --context $MGMT -n gitea port-forward svc/gitea-http "$PORT:3000" > /dev/null 2>&1
+k3d-test-gslb3: API unreachable or wrong cluster behind its load balancer, restarting it
+mgmt CoreDNS: addresses already current
+region addresses:
+  EU_IPS=172.18.0.11 172.18.0.7
+  US_IPS=172.18.0.6 172.18.0.12
+  CZ_IPS=172.18.0.16 172.18.0.17

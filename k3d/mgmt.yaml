@@ -1,0 +1,23 @@
+# Management cluster: Argo CD, Kargo, Gitea, cert-manager.
+# Joins the docker network created by k8gb's local setup, so its pods can reach
+# the edge DNS and the regional clusters. Binds NO host ports (test-gslb1 owns
+# 80, 443, 3000, 8000, 8080, 9090, 5053); reach the UIs with `make ui-*`.
+apiVersion: k3d.io/v1alpha5
+kind: Simple
+metadata:
+  name: mgmt
+servers: 1
+agents: 0
+image: docker.io/rancher/k3s:v1.36.2-k3s1
+network: k3d-action-bridge-network
+options:
+  k3d:
+    wait: true
+    timeout: 300s
+    disableLoadbalancer: true
+  k3s:
+    extraArgs:
+      - arg: --disable=traefik
+        nodeFilters: [server:*]
+      - arg: --disable=servicelb
+        nodeFilters: [server:*]

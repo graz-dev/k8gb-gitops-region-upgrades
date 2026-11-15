@@ -1,0 +1,14 @@
+== happy path: drain eu, upgrade k8gb in eu v1.0.0 -> v1.0.1
+applied at 21:20:27
+  edge DNS while drained: 172.18.0.11 172.18.0.12 172.18.0.6 172.18.0.7 
+  helm upgrade k3d-test-gslb1 -> chart v1.0.1 (operator v1.0.1, coredns v0.7.0) took 35s
+  [edge]  448 NOERROR(2 records)
+  [edge]    6 NOERROR(4 records)
+  [eu-coredns]  299 NOERROR(2 records)
+  [eu-coredns]   49 TIMEOUT
+  [us-coredns]  458 NOERROR(2 records)
+  k3d-test-gslb1: chart=k8gb-v1.0.1 operator=k8gb:v1.0.1 coredns=k8s_crd:v0.7.0
+  k3d-test-gslb2: chart=k8gb-v1.0.0 operator=k8gb:v1.0.0 coredns=k8s_crd:v0.6.0
+  edge DNS after upgrade (eu still drained): 172.18.0.11 172.18.0.12 
+applied at 21:22:13
+  edge DNS after restore: 172.18.0.11 172.18.0.12 

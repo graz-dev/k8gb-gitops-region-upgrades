@@ -1,0 +1,14 @@
+NAME                      STATUS                     ROLES           AGE   VERSION
+k3d-test-gslb1-agent-0    Ready                      <none>          50m   v1.37.2+k3s1
+k3d-test-gslb1-server-0   Ready,SchedulingDisabled   control-plane   50m   v1.37.2+k3s1
+NAME                                IMAGE                 CHANNEL   VERSION         COMPLETE   MESSAGE
+plan.upgrade.cattle.io/k3s-agent    rancher/k3s-upgrade             v1.37.2-k3s99   False      
+plan.upgrade.cattle.io/k3s-server   rancher/k3s-upgrade             v1.37.2-k3s99   False      
+
+NAME                                                                  READY   STATUS                  RESTARTS   AGE
+pod/apply-k3s-agent-on-k3d-test-gslb1-agent-0-with-113f28e8e0-ms44s   0/1     Unknown                 0          12m
+pod/apply-k3s-agent-on-k3d-test-gslb1-agent-0-with-113f28e8e0-xcgf7   0/1     Completed               0          11m
+pod/apply-k3s-agent-on-k3d-test-gslb1-agent-0-with-8524bc898d-s76bc   0/1     Init:ImagePullBackOff   0          6m9s
+pod/apply-k3s-server-on-k3d-test-gslb1-server-0-with-113f28e8-tpxsm   0/1     Completed               0          12m
+pod/apply-k3s-server-on-k3d-test-gslb1-server-0-with-8524bc89-dr5d7   0/1     ImagePullBackOff        0          6m9s
+pod/system-upgrade-controller-56b9b9d47b-62l82                        1/1     Running                 0          12m

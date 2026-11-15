@@ -1,0 +1,22 @@
+[
+  {
+    "stage": "cz-drain",
+    "freight": "5394ee4",
+    "message": "step \"step-4\": failed: refusing to drain cz: it runs v1.37.2-k3s1 and v1.36.6-k3s1 would be a downgrade, which Kubernetes does not support."
+  },
+  {
+    "stage": "cz-upgrade",
+    "freight": "5394ee4",
+    "message": "step \"step-10\" met error threshold of 1: error running step \"step-10\": error sending HTTP request: Get \"https://k3d-test-gslb3-serverlb:6443/api/v1/nodes\": EOF"
+  },
+  {
+    "stage": "eu-drain",
+    "freight": "fcb975a",
+    "message": "step \"step-3\": failed: refusing to drain eu: it runs v1.35.9-k3s1 and Kubernetes upgrades one minor at a time, so v1.37.2-k3s1 would skip a minor. Promote the next minor first."
+  },
+  {
+    "stage": "us-drain",
+    "freight": "fcb975a",
+    "message": "step \"task-5::step-3\": failed: refusing to drain us: eu is drained right now"
+  }
+]

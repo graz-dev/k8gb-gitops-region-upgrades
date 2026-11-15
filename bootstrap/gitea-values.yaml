@@ -1,0 +1,25 @@
+# In-cluster Git server so the demo is self-contained (no GitHub token needed).
+# SQLite + in-memory cache/session/queue: a demo-sized footprint.
+postgresql-ha:
+  enabled: false
+postgresql:
+  enabled: false
+valkey-cluster:
+  enabled: false
+valkey:
+  enabled: false
+persistence:
+  enabled: true
+  size: 1Gi
+gitea:
+  config:
+    database:
+      DB_TYPE: sqlite3
+    session:
+      PROVIDER: memory
+    cache:
+      ADAPTER: memory
+    queue:
+      TYPE: level
+    server:
+      ROOT_URL: http://gitea-http.gitea.svc.cluster.local:3000/

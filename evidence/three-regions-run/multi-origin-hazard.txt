@@ -1,0 +1,15 @@
+# Why per-minor Warehouses were dropped (observed 2026-11-14)
+
+Stage eu-drain, freight collection after a failed guard test plus a real promotion:
+{"origin":"Warehouse/k3s-1-36","freight":"2c6d778"}
+{"origin":"Warehouse/k3s-1-37","freight":"172badc"}
+
+Promotions Kargo created by itself (MatchUpstream autopromotion) - BOTH origins were promoted, 1.37.2 first:
+2026-11-14T21:11:22Z eu-drain freight=2c6d778 Succeeded
+2026-11-14T21:11:33Z eu-upgrade freight=172badc Succeeded
+2026-11-14T21:11:33Z eu-upgrade freight=2c6d778 Running
+2026-11-14T21:13:01Z eu-restore freight=172badc Succeeded
+
+Result: eu went 1.35.9 -> 1.37.2 (skipping 1.36) although the Freight chosen was 1.36.6:
+k3d-test-gslb1-agent-0    Ready                      <none>          83m   v1.37.2+k3s1
+k3d-test-gslb1-server-0   Ready,SchedulingDisabled   control-plane   83m   v1.37.2+k3s1

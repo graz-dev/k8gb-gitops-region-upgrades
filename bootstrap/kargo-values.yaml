@@ -1,0 +1,18 @@
+# Kargo. The admin password hash and token signing key are NOT here: bootstrap.sh
+# generates them into .secrets/ and passes them with --set. Never commit them.
+api:
+  tls:
+    enabled: true
+    selfSignedCert: true   # via cert-manager
+  adminAccount:
+    enabled: true
+controller:
+  # The demo's Gitea is in-cluster and speaks plain HTTP. Kargo refuses to send
+  # Git credentials over HTTP unless told otherwise. Fine for a local demo; with
+  # a real Git server use HTTPS and drop this.
+  allowCredentialsOverHTTP: true
+  argocd:
+    integrationEnabled: true
+    namespace: argocd
+  rollouts:
+    integrationEnabled: true   # AnalysisRuns for verification

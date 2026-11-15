@@ -1,0 +1,26 @@
+# Control plane first. Kargo edits spec.version.
+apiVersion: upgrade.cattle.io/v1
+kind: Plan
+metadata:
+  name: k3s-server
+  namespace: system-upgrade
+spec:
+  version: v1.35.9-k3s1
+  concurrency: 1
+  cordon: true
+  nodeSelector:
+    matchExpressions:
+      - {key: node-role.kubernetes.io/control-plane, operator: Exists}
+  serviceAccountName: system-upgrade
+  upgrade:
+    image: rancher/k3s-upgrade
+    # WORKAROUND for a k3s-upgrade bug in k3d (NOTES.md section 3). The image's script finds
+    # the k3s process by looking for "k3s" in the PARENT's command line; k8gb's clusters start
+    # with `--node-label svccontroller.k3s.cattle.io/...`, which matches, so it mistakes
+    # /bin/sh for the k3s binary and overwrites it: the node never comes back. Inside k3d the
+    # binary is always /bin/k3s, so say so. Drop this block on a real (non-k3d) node.
+    command: [sh, -c]
+    args:
+      - |
+        sed 's#if \[ "$K3S_PID" = "1" \]; then#if [ "$K3S_PID" = "1" ] || [ -e /host/bin/k3d-entrypoint.sh ]; then#' /bin/upgrade.sh > /tmp/upgrade.sh
+        exec sh -xe /tmp/upgrade.sh upgrade

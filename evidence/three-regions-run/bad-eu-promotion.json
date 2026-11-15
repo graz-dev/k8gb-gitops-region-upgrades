@@ -1,0 +1,20 @@
+[
+  {
+    "stage": "eu-upgrade",
+    "freight": "5394ee4",
+    "phase": "Succeeded",
+    "message": null
+  },
+  {
+    "stage": "eu-upgrade",
+    "freight": "fcb975a",
+    "phase": "Succeeded",
+    "message": null
+  },
+  {
+    "stage": "eu-upgrade",
+    "freight": "58c24f1",
+    "phase": "Errored",
+    "message": "step \"step-10\" timed out after 6m0s: "
+  }
+]

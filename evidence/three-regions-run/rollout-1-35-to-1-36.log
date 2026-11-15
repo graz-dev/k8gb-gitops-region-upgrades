@@ -1,0 +1,31 @@
+promoting freight 5394ee4 to kubernetes/eu-drain
+promotion.kargo.akuity.io/eu-drain.01m7e03t0kvvcwtv29rfm4fr0m.5394ee4 created
+following freight 5394ee4 in kubernetes (eu)
+14:41:15  eu-drain=-/-  eu-restore=-/-  eu-upgrade=-/-
+14:41:19  eu-drain=Succeeded/Running  eu-restore=-/-  eu-upgrade=-/-
+14:41:29  eu-drain=Succeeded/Successful  eu-restore=-/-  eu-upgrade=-/-
+14:42:40  eu-drain=Succeeded/Successful  eu-restore=-/-  eu-upgrade=Succeeded/Running
+14:42:58  eu-drain=Succeeded/Successful  eu-restore=Succeeded/-  eu-upgrade=Succeeded/Successful
+14:43:01  eu-drain=Succeeded/Successful  eu-restore=Succeeded/Running  eu-upgrade=Succeeded/Successful
+14:43:09  eu-drain=Succeeded/Successful  eu-restore=Succeeded/Successful  eu-upgrade=Succeeded/Successful
+eu done: eu-restore verified
+promoting freight 5394ee4 to kubernetes/us-drain
+promotion.kargo.akuity.io/us-drain.01m7e07a6fq9pcnv0rc6045k6r.5394ee4 created
+following freight 5394ee4 in kubernetes (us)
+14:43:10  us-drain=-/-  us-restore=-/-  us-upgrade=-/-
+14:43:14  us-drain=Succeeded/Running  us-restore=-/-  us-upgrade=-/-
+14:43:24  us-drain=Succeeded/Successful  us-restore=-/-  us-upgrade=-/-
+14:44:36  us-drain=Succeeded/Successful  us-restore=-/-  us-upgrade=Succeeded/Running
+14:44:54  us-drain=Succeeded/Successful  us-restore=-/-  us-upgrade=Succeeded/Successful
+14:44:57  us-drain=Succeeded/Successful  us-restore=Succeeded/Running  us-upgrade=Succeeded/Successful
+14:45:03  us-drain=Succeeded/Successful  us-restore=Succeeded/Successful  us-upgrade=Succeeded/Successful
+us done: us-restore verified
+promoting freight 5394ee4 to kubernetes/cz-drain
+promotion.kargo.akuity.io/cz-drain.01m7e0asnnss40zznjgtxzb0yx.5394ee4 created
+following freight 5394ee4 in kubernetes (cz)
+14:45:04  cz-drain=-/-  cz-restore=-/-  cz-upgrade=-/-
+14:45:08  cz-drain=Succeeded/Running  cz-restore=-/-  cz-upgrade=-/-
+14:45:22  cz-drain=Succeeded/Successful  cz-restore=-/-  cz-upgrade=-/-
+14:45:36  cz-drain=Succeeded/Successful  cz-restore=-/-  cz-upgrade=Errored/-
+FAILED promotion -> cz-upgrade: step "step-10" met error threshold of 1: error running step "step-10": error sending HTTP request: Get "https://k3d-test-gslb3-serverlb:6443/api/v1/nodes": EOF
+exit=1

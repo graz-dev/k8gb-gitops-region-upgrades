@@ -1,0 +1,30 @@
+# Where Freight (a k3s version to roll out) comes from. rancher/k3s-upgrade is the image System
+# Upgrade Controller uses; its tags are the k3s versions (v1.37.2-k3s1).
+#
+# The Freight list is your notification: whenever a newer version is published, the Warehouse
+# creates a Freight for it. Nothing is rolled out until YOU promote a Freight to `<region>-drain`
+# (scripts/rollout.sh), so you decide when and to what.
+#
+# Kargo creates a Freight only for the newest match, not one per version. Kubernetes upgrades one
+# minor at a time, so to step through 1.35 -> 1.36 -> 1.37 you also need Freight for the intermediate
+# minors: `make freight-sync` creates one for the newest patch of every minor the Warehouse has
+# discovered. (One Warehouse per minor was tried and dropped: a Stage that takes Freight from several
+# Warehouses autopromotes all of them downstream, see NOTES.md.)
+#
+# A Freight that skips a minor, or goes back, is refused by the drain and upgrade stages.
+#
+# The tag `v1.37.2-k3s1` is read as semver 1.37.2 with prerelease `k3s1`, hence the `-0` in the
+# range, which makes prereleases eligible. Starting point of the demo: v1.35.9.
+apiVersion: kargo.akuity.io/v1alpha1
+kind: Warehouse
+metadata:
+  name: k3s
+spec:
+  subscriptions:
+    - image:
+        repoURL: docker.io/rancher/k3s-upgrade
+        constraint: ">=1.35.0-0"
+        allowTagsRegexes:
+          - ^v1\.(3[5-9]|[4-9][0-9])\.[0-9]+-k3s[0-9]+$
+        strictSemvers: false
+        discoveryLimit: 30

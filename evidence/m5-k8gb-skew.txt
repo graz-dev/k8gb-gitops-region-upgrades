@@ -1,0 +1,10 @@
+== version skew: eu on v1.0.1, us on v1.0.0, both in rotation
+  k3d-test-gslb1: chart=k8gb-v1.0.1 operator=k8gb:v1.0.1 coredns=k8s_crd:v0.7.0
+  k3d-test-gslb2: chart=k8gb-v1.0.0 operator=k8gb:v1.0.0 coredns=k8s_crd:v0.6.0
+  [edge]  274 NOERROR(4 records)
+  [eu-coredns]  274 NOERROR(4 records)
+  [us-coredns]  274 NOERROR(4 records)
+  k3d-test-gslb1 Gslb: {"podinfo.cloud.example.com":["172.18.0.6","172.18.0.7","172.18.0.11","172.18.0.12"]}
+  k3d-test-gslb1 operator errors (last 5 min): 0
+  k3d-test-gslb2 Gslb: {"podinfo.cloud.example.com":["172.18.0.11","172.18.0.12","172.18.0.6","172.18.0.7"]}
+  k3d-test-gslb2 operator errors (last 5 min): 4

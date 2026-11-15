@@ -1,0 +1,22 @@
+apiVersion: kargo.akuity.io/v1alpha1
+kind: Project
+metadata:
+  name: kubernetes
+---
+apiVersion: kargo.akuity.io/v1alpha1
+kind: ProjectConfig
+metadata:
+  name: kubernetes
+  namespace: kubernetes
+spec:
+  # Each region is its own branch of three stages: drain -> upgrade -> restore. You start a
+  # region by promoting its `<region>-drain`; the rest of that branch promotes by itself once
+  # the stage upstream is verified. The branches are independent: the safety interlock in the
+  # set-rotation task (not the pipeline shape) keeps two regions from being drained at once.
+  promotionPolicies:
+    - {stageSelector: {name: eu-upgrade}, autoPromotionEnabled: true}
+    - {stageSelector: {name: eu-restore}, autoPromotionEnabled: true}
+    - {stageSelector: {name: us-upgrade}, autoPromotionEnabled: true}
+    - {stageSelector: {name: us-restore}, autoPromotionEnabled: true}
+    - {stageSelector: {name: cz-upgrade}, autoPromotionEnabled: true}
+    - {stageSelector: {name: cz-restore}, autoPromotionEnabled: true}

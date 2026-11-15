@@ -1,0 +1,6 @@
+/k8gb/
+.env
+*.generated.yaml
+.secrets/
+.logs/
+gitops/**/charts/

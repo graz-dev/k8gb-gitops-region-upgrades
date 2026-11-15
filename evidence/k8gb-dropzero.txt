@@ -1,0 +1,11 @@
+# weight 0 with the upstream CoreDNS vs the patched one (scripts/k8gb-dropzero-demo.sh), 2026-11-14
+# Gslb: roundRobin, weight {eu: 0, us: 1}. Answers to 12 queries each, grouped.
+
+== upstream CoreDNS (k8s_crd v0.7.0, 'loadbalance weight')
+(upstream result captured earlier in this session: all four addresses in every answer, EU's last in the CoreDNS answers, first in about half of the edge answers)
+
+== patched CoreDNS ('loadbalance weight dropzero')
+  eu coredns  12 x 172.18.0.11 172.18.0.12
+  us coredns  12 x 172.18.0.11 172.18.0.12
+  edge (BIND) 12 x 172.18.0.11 172.18.0.12
+  (EU's addresses 172.18.0.6 and 172.18.0.7 are in none of the answers)

@@ -1,0 +1,24 @@
+promoting freight fcb975a to kubernetes/eu-drain
+promotion.kargo.akuity.io/eu-drain.01m7e0sqyvndsyst1gzgztk8hp.fcb975a created
+following freight fcb975a in kubernetes (eu)
+14:53:14  eu-drain=-/-  eu-restore=-/-  eu-upgrade=-/-
+14:53:21  eu-drain=Succeeded/Running  eu-restore=-/-  eu-upgrade=-/-
+14:53:28  eu-drain=Succeeded/Successful  eu-restore=-/-  eu-upgrade=-/-
+14:55:03  eu-drain=Succeeded/Successful  eu-restore=-/-  eu-upgrade=Succeeded/Pending
+14:55:20  eu-drain=Succeeded/Successful  eu-restore=-/-  eu-upgrade=Succeeded/Successful
+14:55:28  eu-drain=Succeeded/Successful  eu-restore=Succeeded/Running  eu-upgrade=Succeeded/Successful
+14:55:35  eu-drain=Succeeded/Successful  eu-restore=Succeeded/Successful  eu-upgrade=Succeeded/Successful
+eu done: eu-restore verified
+promoting freight fcb975a to kubernetes/us-drain
+promotion.kargo.akuity.io/us-drain.01m7e0y2ebss81kpr5x462tg9c.fcb975a created
+following freight fcb975a in kubernetes (us)
+14:55:35  us-drain=-/-  us-restore=-/-  us-upgrade=-/-
+14:55:39  us-drain=Succeeded/Pending  us-restore=-/-  us-upgrade=-/-
+14:55:42  us-drain=Succeeded/Running  us-restore=-/-  us-upgrade=-/-
+14:55:53  us-drain=Succeeded/Successful  us-restore=-/-  us-upgrade=-/-
+14:57:29  us-drain=Succeeded/Successful  us-restore=-/-  us-upgrade=Succeeded/Running
+14:57:44  us-drain=Succeeded/Successful  us-restore=-/-  us-upgrade=Succeeded/Successful
+14:57:51  us-drain=Succeeded/Successful  us-restore=Succeeded/Running  us-upgrade=Succeeded/Successful
+14:58:02  us-drain=Succeeded/Successful  us-restore=Succeeded/Successful  us-upgrade=Succeeded/Successful
+us done: us-restore verified
+exit=0

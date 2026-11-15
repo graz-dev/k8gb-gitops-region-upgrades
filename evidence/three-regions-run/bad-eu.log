@@ -1,0 +1,11 @@
+./scripts/rollout.sh kubernetes $(./scripts/bad-k3s-freight.sh create eu) eu
+promoting freight 58c24f1 to kubernetes/eu-drain
+promotion.kargo.akuity.io/eu-drain.01m7e15gdkayhpmzwbwbmysn1h.58c24f1 created
+following freight 58c24f1 in kubernetes (eu)
+14:59:39  eu-drain=-/-  eu-restore=-/-  eu-upgrade=-/-
+14:59:43  eu-drain=Succeeded/Running  eu-restore=-/-  eu-upgrade=-/-
+14:59:56  eu-drain=Succeeded/Successful  eu-restore=-/-  eu-upgrade=-/-
+15:06:01  eu-drain=Succeeded/Successful  eu-restore=-/-  eu-upgrade=Errored/Successful
+FAILED promotion -> eu-upgrade: step "step-10" timed out after 6m0s: 
+make: *** [demo-kubernetes-bad] Error 1
+exit=2

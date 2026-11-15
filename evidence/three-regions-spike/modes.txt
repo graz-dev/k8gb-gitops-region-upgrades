@@ -1,0 +1,41 @@
+deploying podinfo + Gslb directly in the three regions (no Argo CD)
+
+== roundrobin
+  edge  coredns/edge  first address -> cz:5 eu:2 us:5               full answer has: [cz,eu,us]
+  eu    coredns/edge  first address -> cz:5 eu:3 us:4               full answer has: [cz,eu,us]
+  us    coredns/edge  first address -> cz:1 eu:7 us:4               full answer has: [cz,eu,us]
+  cz    coredns/edge  first address -> cz:3 eu:6 us:3               full answer has: [cz,eu,us]
+
+== failover-us
+  edge  coredns/edge  first address -> us:12                        full answer has: [us]
+  eu    coredns/edge  first address -> us:12                        full answer has: [us]
+  us    coredns/edge  first address -> us:12                        full answer has: [us]
+  cz    coredns/edge  first address -> us:12                        full answer has: [us]
+
+== failover-eu-down
+  edge  coredns/edge  first address -> cz:7 us:5                    full answer has: [cz,us]
+  eu    coredns/edge  first address -> us:12                        full answer has: [cz,us]
+  us    coredns/edge  first address -> us:12                        full answer has: [cz,us]
+  cz    coredns/edge  first address -> cz:12                        full answer has: [cz,us]
+  (eu's Gslb health: {"podinfo.cloud.example.com":"Unhealthy"})
+
+== weight0
+  edge  coredns/edge  first address -> cz:4 eu:4 us:4               full answer has: [cz,eu,us]
+  eu    coredns/edge  first address -> cz:5 us:7                    full answer has: [cz,eu,us]
+  us    coredns/edge  first address -> cz:4 us:8                    full answer has: [cz,eu,us]
+  cz    coredns/edge  first address -> cz:5 us:7                    full answer has: [cz,eu,us]
+
+== dropzero
+  edge  coredns/edge  first address -> cz:4 us:8                    full answer has: [cz,us]
+  eu    coredns/edge  first address -> cz:8 us:4                    full answer has: [cz,us]
+  us    coredns/edge  first address -> cz:8 us:4                    full answer has: [cz,us]
+  cz    coredns/edge  first address -> cz:7 us:5                    full answer has: [cz,us]
+
+== dropzero-uneven
+  edge  coredns/edge  first address -> cz:17 us:23                  full answer has: [cz,us]
+  eu    coredns/edge  first address -> cz:8 us:32                   full answer has: [cz,us]
+  us    coredns/edge  first address -> cz:10 us:30                  full answer has: [cz,us]
+  cz    coredns/edge  first address -> cz:8 us:32                   full answer has: [cz,us]
+
+cleaning up
+./scripts/k8gb-three-regions.sh  3.67s user 3.40s system 1% cpu 8:24.57 total

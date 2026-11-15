@@ -1,0 +1,102 @@
+# Take a region out of global DNS rotation (drain) or put it back (restore).
+# Shared by every region's drain and restore stage: the pipelines only differ in what they
+# change while the region is drained.
+#
+# Steps: clone Git, SAFETY CHECKS (drain only), edit gslb/rotation.yaml, commit, push,
+# and have Argo CD apply it to EVERY region (every cluster must carry the same setting).
+# The verification of the Stage then waits until the edge DNS agrees.
+#
+# How a region is drained (stock k8gb, see NOTES.md): `failover` with primaryGeoTag = the RECEIVER,
+# the one region that serves everybody while this one is out. With three regions the third one is
+# out of rotation too during that time: k8gb's failover has a single primary. (The alternative,
+# weight 0, needs a patched CoreDNS: upstream/.)
+apiVersion: kargo.akuity.io/v1alpha1
+kind: ClusterPromotionTask
+metadata:
+  name: set-rotation
+spec:
+  vars:
+    - name: repoURL
+      value: http://gitea-http.gitea.svc.cluster.local:3000/demo/gitops.git
+    - name: action     # drain | restore
+    - name: region     # region being drained/restored
+    - name: receiver   # region that serves everybody while `region` is drained
+  steps:
+    - uses: git-clone
+      config:
+        repoURL: ${{ vars.repoURL }}
+        checkout:
+          - branch: main
+            path: ./rotation-${{ vars.action }}
+
+    # --- Safety interlock. The regions' pipelines are independent branches, so nothing
+    # else stops two of them from draining at the same time, which would leave nobody
+    # serving. rotation.yaml is the lock: it records which region is drained (the annotation
+    # `region-upgrades-drained`, empty when none), one value for the whole system.
+    - uses: yaml-parse
+      as: current
+      config:
+        path: ./rotation-${{ vars.action }}/gslb/rotation.yaml
+        outputs:
+          - name: drained
+            fromExpression: metadata.annotations['region-upgrades-drained']
+    - uses: fail
+      if: ${{ success() && vars.action == 'drain' && (task.outputs['current']?.drained ?? '') != '' && task.outputs['current']?.drained != vars.region }}
+      config:
+        message: "refusing to drain ${{ vars.region }}: ${{ task.outputs['current']?.drained }} is drained right now"
+    # (An `if` replaces the default `success()`: without it a step would still run after an earlier
+    # one failed, so every `if` here starts with success().)
+    # ...and every OTHER region must be fully synced and healthy, or it cannot take the traffic.
+    - uses: argocd-wait
+      if: ${{ success() && vars.action == 'drain' }}
+      config:
+        apps:
+          - selector:
+              matchLabels:
+                demo: k8gb-region-upgrades
+              matchExpressions:
+                - {key: region, operator: NotIn, values: ["${{ vars.region }}"]}
+
+    - uses: yaml-update
+      config:
+        path: ./rotation-${{ vars.action }}/gslb/rotation.yaml
+        updates:
+          - key: spec.strategy.type
+            value: "${{ vars.action == 'drain' ? 'failover' : 'roundRobin' }}"
+          - key: metadata.annotations.region-upgrades-drained
+            value: "${{ vars.action == 'drain' ? vars.region : '' }}"
+    - uses: yaml-update
+      if: ${{ success() && vars.action == 'drain' }}
+      config:
+        path: ./rotation-${{ vars.action }}/gslb/rotation.yaml
+        updates:
+          - key: spec.strategy.primaryGeoTag
+            value: ${{ vars.receiver }}
+    # Nothing to commit (a retry, or the fix after a failed upgrade): the step is skipped
+    # and still outputs HEAD.
+    - uses: git-commit
+      as: commit
+      config:
+        path: ./rotation-${{ vars.action }}
+        message: "${{ vars.action }} ${{ vars.region }} (Kargo: ${{ ctx.project }}/${{ ctx.stage }})"
+    - uses: git-push
+      config:
+        path: ./rotation-${{ vars.action }}
+    - uses: argocd-update
+      config:
+        apps:
+          - name: gslb-eu
+            sources:
+              - repoURL: ${{ vars.repoURL }}
+                desiredRevision: ${{ task.outputs['commit'].commit }}
+                updateTargetRevision: false
+          - name: gslb-us
+            sources:
+              - repoURL: ${{ vars.repoURL }}
+                desiredRevision: ${{ task.outputs['commit'].commit }}
+                updateTargetRevision: false
+          - name: gslb-cz
+            sources:
+              - repoURL: ${{ vars.repoURL }}
+                desiredRevision: ${{ task.outputs['commit'].commit }}
+                updateTargetRevision: false

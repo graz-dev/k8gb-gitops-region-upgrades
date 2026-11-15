@@ -1,0 +1,31 @@
+# SINGLE source of truth for which regions are in global DNS rotation.
+#
+# Every cluster runs its own k8gb and answers DNS by itself, so all clusters must
+# carry the same setting. This file is a kustomize patch applied to the Gslb of
+# every region (see kustomization.yaml): change it once and Argo CD renders it
+# into every cluster.
+#
+#   type: roundRobin                 all regions are in rotation (normal state)
+#   type: failover + primaryGeoTag   only the primary region is in rotation; the others
+#                                    are out until the primary has no healthy pods.
+#                                    This is how a region is drained: the primary is the
+#                                    RECEIVER, the region that serves everybody meanwhile.
+#
+# The annotation says WHICH region is drained (empty = none). It is the lock the drain
+# pipeline checks so that two regions are never drained at once.
+#
+# Why failover and not `weight: 0`: k8gb's weighted round robin only changes the ORDER of
+# the answers. A region with weight 0 is still in every DNS answer, just last (NOTES.md).
+# Failover really removes it from the answers; with three regions the price is that the
+# receiver takes all the traffic and the third region is out as well (NOTES.md, three regions).
+apiVersion: k8gb.io/v1beta1
+kind: Gslb
+metadata:
+  name: podinfo
+  namespace: podinfo
+  annotations:
+    region-upgrades-drained: ""
+spec:
+  strategy:
+    type: roundRobin
+    primaryGeoTag: us   # only used when type is failover (the receiver)

@@ -1,0 +1,34 @@
+# Argo CD in the mgmt cluster. Plain HTTP behind port-forward; no dex/notifications.
+configs:
+  params:
+    server.insecure: true
+  cm:
+    # Track resources with an annotation instead of the app.kubernetes.io/instance label
+    # (charts and operators often set that label themselves).
+    application.resourceTrackingMethod: annotation
+    # System Upgrade Controller's Plan: Healthy only when the upgrade it describes is
+    # complete. Without this Argo CD calls a Plan Healthy the moment it exists, and
+    # Kargo's argocd-update would not wait for the nodes to be upgraded.
+    resource.customizations.health.upgrade.cattle.io_Plan: |
+      hs = {}
+      hs.status = "Progressing"
+      hs.message = "waiting for the system-upgrade-controller"
+      if obj.status ~= nil and obj.status.conditions ~= nil then
+        local complete = false
+        for _, c in ipairs(obj.status.conditions) do
+          if c.type == "Complete" and c.status == "True" then complete = true end
+        end
+        if complete and obj.status.latestVersion == obj.spec.version then
+          hs.status = "Healthy"
+          hs.message = "upgrade complete at " .. obj.spec.version
+        else
+          hs.message = "upgrading to " .. obj.spec.version
+        end
+      end
+      return hs
+    # Kargo triggers refreshes itself; keep the default poll relaxed.
+    timeout.reconciliation: 180s
+dex:
+  enabled: false
+notifications:
+  enabled: false

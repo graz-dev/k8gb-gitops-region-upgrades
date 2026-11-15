@@ -1,0 +1,8 @@
+[
+  {
+    "stage": "eu-drain",
+    "freight": "fcb975a",
+    "phase": "Failed",
+    "message": "step \"step-3\": failed: refusing to drain eu: it runs v1.35.9-k3s1 and Kubernetes upgrades one minor at a time, so v1.37.2-k3s1 would skip a minor. Promote the next minor first."
+  }
+]

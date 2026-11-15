@@ -1,0 +1,38 @@
+# The demo workload: it is what the pattern protects, not something Kargo promotes
+# (an application release is a job for a canary, not for a region drain).
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: podinfo
+  namespace: argocd
+spec:
+  goTemplate: true
+  goTemplateOptions: ["missingkey=error"]
+  generators:
+    - list:
+        elements:
+          - {region: eu}
+          - {region: us}
+          - {region: cz}
+  template:
+    metadata:
+      name: 'podinfo-{{.region}}'
+      labels: {demo: k8gb-region-upgrades, pipeline: podinfo, region: '{{.region}}'}
+    spec:
+      project: default
+      source:
+        repoURL: http://gitea-http.gitea.svc.cluster.local:3000/demo/gitops.git
+        targetRevision: main
+        path: 'apps/podinfo/overlays/{{.region}}'
+      destination:
+        name: '{{.region}}'
+        namespace: podinfo
+      syncPolicy:
+        # Argo CD is the only thing that syncs. prune: a deletion in Git (a reverted bad
+        # config) must be removed from the region too. selfHeal: also retries a revision
+        # whose first sync left something OutOfSync. Kargo decides WHEN a region changes
+        # (it commits the per-region state) and gates on the result; it never syncs.
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions: [CreateNamespace=true]

@@ -1,0 +1,144 @@
+# Verifications, run by Kargo after a Promotion as Argo Rollouts AnalysisRuns (Jobs in
+# the Kargo project namespace of the mgmt cluster, on the same docker network as the
+# regions). Region addresses come from the `regions` ConfigMap (scripts/register-clusters.sh).
+#
+# 1. dns-region-absent  : the edge DNS no longer returns the region. Polls until true or
+#                         time out, so it MEASURES the drain instead of sleeping.
+# 2. dns-region-present : the edge DNS returns the region again.
+# 3. gateway-smoke      : the region's gateway, called directly (bypassing GSLB), serves the app.
+#
+# That the NODES run the new version is not checked here but in the `<region>-upgrade` Promotion
+# itself (an `http` step), so that a failure is an explicit failed Promotion.
+apiVersion: argoproj.io/v1alpha1
+kind: ClusterAnalysisTemplate
+metadata:
+  name: dns-region-absent
+spec:
+  args:
+    - name: region
+  metrics:
+    - name: dns-region-absent
+      provider:
+        job:
+          spec:
+            backoffLimit: 0
+            ttlSecondsAfterFinished: 3600
+            template:
+              spec:
+                restartPolicy: Never
+                containers:
+                  - name: check
+                    image: demo-tools:local
+                    imagePullPolicy: Never
+                    envFrom: [{configMapRef: {name: regions}}]
+                    env:
+                      - {name: REGION, value: "{{args.region}}"}
+                      - {name: TIMEOUT, value: "180"}
+                    command: [bash, -c]
+                    args:
+                      - |
+                        set -u
+                        up=$(echo "$REGION" | tr a-z A-Z); var="${up}_IPS"; region_ips=${!var}
+                        start=$(date +%s); clean=0
+                        while [ $(( $(date +%s) - start )) -lt "$TIMEOUT" ]; do
+                          ips=$(dig +short +tcp +time=2 +tries=1 @"$EDGEDNS_IP" -p "$EDGEDNS_PORT" "$HOSTNAME" A | grep -E '^[0-9.]+$' | tr '\n' ' ')
+                          hit=0; for ip in $ips; do case " $region_ips " in *" $ip "*) hit=1;; esac; done
+                          if [ -n "$ips" ] && [ "$hit" = 0 ]; then clean=$((clean+1)); else clean=0; fi
+                          echo "$(date +%T) answer=[$ips] region_present=$hit clean_streak=$clean"
+                          if [ "$clean" -ge 5 ]; then
+                            echo "VERIFIED: $REGION absent from DNS ($(( $(date +%s) - start ))s after verification started)"; exit 0
+                          fi
+                          sleep 1
+                        done
+                        echo "FAILED: $REGION still in DNS after ${TIMEOUT}s"; exit 1
+---
+apiVersion: argoproj.io/v1alpha1
+kind: ClusterAnalysisTemplate
+metadata:
+  name: dns-region-present
+spec:
+  args:
+    - name: region
+  metrics:
+    - name: dns-region-present
+      provider:
+        job:
+          spec:
+            backoffLimit: 0
+            ttlSecondsAfterFinished: 3600
+            template:
+              spec:
+                restartPolicy: Never
+                containers:
+                  - name: check
+                    image: demo-tools:local
+                    imagePullPolicy: Never
+                    envFrom: [{configMapRef: {name: regions}}]
+                    env:
+                      - {name: REGION, value: "{{args.region}}"}
+                      - {name: TIMEOUT, value: "180"}
+                    command: [bash, -c]
+                    args:
+                      - |
+                        set -u
+                        up=$(echo "$REGION" | tr a-z A-Z); var="${up}_IPS"; region_ips=${!var}
+                        start=$(date +%s); streak=0
+                        while [ $(( $(date +%s) - start )) -lt "$TIMEOUT" ]; do
+                          ips=$(dig +short +tcp +time=2 +tries=1 @"$EDGEDNS_IP" -p "$EDGEDNS_PORT" "$HOSTNAME" A | grep -E '^[0-9.]+$' | tr '\n' ' ')
+                          hit=0; for ip in $ips; do case " $region_ips " in *" $ip "*) hit=1;; esac; done
+                          if [ "$hit" = 1 ]; then streak=$((streak+1)); else streak=0; fi
+                          echo "$(date +%T) answer=[$ips] region_present=$hit streak=$streak"
+                          if [ "$streak" -ge 5 ]; then
+                            echo "VERIFIED: $REGION back in DNS ($(( $(date +%s) - start ))s after verification started)"; exit 0
+                          fi
+                          sleep 1
+                        done
+                        echo "FAILED: $REGION not back in DNS after ${TIMEOUT}s"; exit 1
+---
+apiVersion: argoproj.io/v1alpha1
+kind: ClusterAnalysisTemplate
+metadata:
+  name: gateway-smoke
+spec:
+  args:
+    - name: region
+  metrics:
+    - name: gateway-smoke
+      provider:
+        job:
+          spec:
+            backoffLimit: 0
+            ttlSecondsAfterFinished: 3600
+            template:
+              spec:
+                restartPolicy: Never
+                containers:
+                  - name: check
+                    image: demo-tools:local
+                    imagePullPolicy: Never
+                    envFrom: [{configMapRef: {name: regions}}]
+                    env:
+                      - {name: REGION, value: "{{args.region}}"}
+                      - {name: TIMEOUT, value: "240"}
+                    command: [bash, -c]
+                    args:
+                      - |
+                        set -u
+                        up=$(echo "$REGION" | tr a-z A-Z); var="${up}_IPS"; region_ips=${!var}
+                        start=$(date +%s); ok_streak=0
+                        # Every gateway address of the region, called DIRECTLY (bypassing DNS/GSLB).
+                        # 10 consecutive fully-correct rounds: the gateway may still be restarting.
+                        while [ $(( $(date +%s) - start )) -lt "$TIMEOUT" ]; do
+                          round_ok=1
+                          for ip in $region_ips; do
+                            code=$(curl -s -m 3 -o /tmp/b -w '%{http_code}' -H "Host: $HOSTNAME" "http://$ip:$GATEWAY_PORT/" || echo 000)
+                            msg=$(jq -r '.message // ""' /tmp/b 2>/dev/null)
+                            if [ "$code" != 200 ] || [ "$msg" != "$REGION" ]; then
+                              round_ok=0; echo "$(date +%T) $ip -> http=$code message=$msg (expected $REGION)"
+                            fi
+                          done
+                          if [ "$round_ok" = 1 ]; then ok_streak=$((ok_streak+1)); else ok_streak=0; fi
+                          if [ "$ok_streak" -ge 10 ]; then echo "VERIFIED: $REGION gateway healthy ($region_ips)"; exit 0; fi
+                          sleep 1
+                        done
+                        echo "FAILED: $REGION gateway not serving correctly after ${TIMEOUT}s"; exit 1

@@ -1,0 +1,38 @@
+# One Application per region for the Kubernetes version (System Upgrade Controller + Plans).
+# Argo CD applies Git by itself; Kargo commits the new version and waits (argocd-update).
+# The Application is only Healthy when the Plans are Complete (custom health check in
+# argocd-cm, see bootstrap/argocd-values.yaml), so the wait covers the whole node upgrade.
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: k8s
+  namespace: argocd
+spec:
+  goTemplate: true
+  goTemplateOptions: ["missingkey=error"]
+  generators:
+    - list:
+        elements:
+          - {region: eu}
+          - {region: us}
+          - {region: cz}
+  template:
+    metadata:
+      name: 'k8s-{{.region}}'
+      labels: {demo: k8gb-region-upgrades, pipeline: kubernetes, region: '{{.region}}'}
+      annotations:
+        kargo.akuity.io/authorized-stage: 'kubernetes:{{.region}}-upgrade'
+    spec:
+      project: default
+      source:
+        repoURL: http://gitea-http.gitea.svc.cluster.local:3000/demo/gitops.git
+        targetRevision: main
+        path: 'platform/k8s/overlays/{{.region}}'
+      destination:
+        name: '{{.region}}'
+        namespace: system-upgrade
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions: [CreateNamespace=true, ServerSideApply=true]

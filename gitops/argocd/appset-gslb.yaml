@@ -1,0 +1,41 @@
+# The Gslb of every region, rendered from the single gslb/rotation.yaml.
+# Draining or restoring ANY region syncs ALL of these
+# apps, because every cluster must carry the same rotation setting.
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: gslb
+  namespace: argocd
+spec:
+  goTemplate: true
+  goTemplateOptions: ["missingkey=error"]
+  generators:
+    - list:
+        elements:
+          - {region: eu}
+          - {region: us}
+          - {region: cz}
+  template:
+    metadata:
+      name: 'gslb-{{.region}}'
+      labels: {demo: k8gb-region-upgrades, pipeline: gslb, region: '{{.region}}'}
+      annotations:
+        kargo.akuity.io/authorized-stage: 'kubernetes:eu-drain,kubernetes:eu-restore,kubernetes:us-drain,kubernetes:us-restore,kubernetes:cz-drain,kubernetes:cz-restore'
+    spec:
+      project: default
+      source:
+        repoURL: http://gitea-http.gitea.svc.cluster.local:3000/demo/gitops.git
+        targetRevision: main
+        path: gslb
+      destination:
+        name: '{{.region}}'
+        namespace: podinfo
+      syncPolicy:
+        # prune: a deletion in Git (a reverted bad config) must be removed from the region too:
+        # Kargo's argocd-update syncs WITHOUT prune. selfHeal: Argo CD also retries a revision
+        # whose first sync left something OutOfSync (what makes prune actually happen).
+        # Kargo still decides WHEN a region changes: it is what commits the per-region state.
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions: [CreateNamespace=true]

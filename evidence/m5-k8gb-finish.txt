@@ -1,0 +1,6 @@
+applied at 21:26:02
+  helm upgrade k3d-test-gslb2 -> chart v1.0.1 (operator v1.0.1, coredns v0.7.0) took 40s
+applied at 21:26:48
+  k3d-test-gslb1: chart=k8gb-v1.0.1 operator=k8gb:v1.0.1 coredns=k8s_crd:v0.7.0
+  k3d-test-gslb2: chart=k8gb-v1.0.1 operator=k8gb:v1.0.1 coredns=k8s_crd:v0.7.0
+  edge DNS: 172.18.0.6 172.18.0.7 

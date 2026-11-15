@@ -1,0 +1,12 @@
+== failure path: eu drained, k8gb in eu broken. What leaks to clients?
+applied at 21:23:35
+-- (a) the operator stops publishing: records are gone from eu's CoreDNS (NXDOMAIN)
+  [edge]  188 NXDOMAIN
+  [eu-coredns]  188 NXDOMAIN
+  [us-coredns]  184 NOERROR(2 records)
+-- (b) eu's CoreDNS is down (crash loop / bad build): resolvers time out on that NS
+  [edge]  121 NOERROR(2 records)
+  [edge]   61 NXDOMAIN
+  [eu-coredns]   60 TIMEOUT
+  [us-coredns]  185 NOERROR(2 records)
+applied at 21:25:48
