@@ -9,7 +9,7 @@
 # How a region is drained (stock k8gb, see NOTES.md): `failover` with primaryGeoTag = the RECEIVER,
 # the one region that serves everybody while this one is out. With three regions the third one is
 # out of rotation too during that time: k8gb's failover has a single primary. (The alternative,
-# weight 0, needs a patched CoreDNS: upstream/.)
+# weight 0, needs a patched CoreDNS: tools/coredns-dropzero/.)
 apiVersion: kargo.akuity.io/v1alpha1
 kind: ClusterPromotionTask
 metadata:

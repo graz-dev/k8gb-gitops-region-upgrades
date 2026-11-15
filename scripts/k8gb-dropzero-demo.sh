@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Try the upstream proposal live (upstream/k8gb-wrr-drop-zero-weights.md): with a CoreDNS
-# built from upstream/coredns-crd-plugin/0001-wrr-optional-dropzero.patch and
+# Try the proposed change live (NOTES.md section 1): with a CoreDNS
+# built from tools/coredns-dropzero/0001-wrr-optional-dropzero.patch and
 # `loadbalance weight dropzero`, a region with weight 0 really leaves the DNS answers, so a
 # drain is a plain weight change (no `failover` trick) and works for any number of regions.
 #
@@ -37,8 +37,8 @@ edit_rotation() { # yq expression applied to gslb/rotation.yaml in the Gitea rep
 case ${1:?build|install|drain|restore|uninstall} in
   build)
     [ -d "${PLUGIN_DIR:?set PLUGIN_DIR to a checkout of k8gb-io/coredns-crd-plugin}" ] || exit 1
-    (cd "$PLUGIN_DIR" && git apply --check "$OLDPWD/upstream/coredns-crd-plugin/0001-wrr-optional-dropzero.patch" 2>/dev/null &&
-      git apply "$OLDPWD/upstream/coredns-crd-plugin/0001-wrr-optional-dropzero.patch" || true
+    (cd "$PLUGIN_DIR" && git apply --check "$OLDPWD/tools/coredns-dropzero/0001-wrr-optional-dropzero.patch" 2>/dev/null &&
+      git apply "$OLDPWD/tools/coredns-dropzero/0001-wrr-optional-dropzero.patch" || true
       GOOS=linux GOARCH="$(docker info --format '{{.Architecture}}' | sed 's/x86_64/amd64/;s/aarch64/arm64/')" CGO_ENABLED=0 \
         go build -o coredns cmd/coredns.go && docker build -q -t "$IMG:$TAG" .) ;;
   install)

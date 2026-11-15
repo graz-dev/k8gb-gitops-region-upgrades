@@ -17,7 +17,7 @@
 #                    others" behaviour a maintainer described): who gets eu's traffic?
 #   weight0          roundRobin, weights eu=0 us=1 cz=1 on the STOCK CoreDNS: is eu out?
 #   dropzero         the same weights with the patched CoreDNS (`loadbalance weight dropzero`,
-#                    upstream/coredns-crd-plugin/); needs `scripts/k8gb-dropzero-demo.sh build` once
+#                    tools/coredns-dropzero/); needs `scripts/k8gb-dropzero-demo.sh build` once
 #   dropzero-uneven  weights eu=0 us=3 cz=1: the others share in proportion (40 queries)
 set -euo pipefail
 cd "$(dirname "$0")/.."

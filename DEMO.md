@@ -164,7 +164,7 @@ It prints, for the edge DNS and each region's CoreDNS, the region of the first a
 | `dropzero` (same weights, patched CoreDNS) | only us and cz, 50/50; with `us:3 cz:1`, 24/16 of 40 |
 
 `dropzero` needs the patched CoreDNS built once: `PLUGIN_DIR=<checkout of k8gb-io/coredns-crd-plugin> ./scripts/k8gb-dropzero-demo.sh build`
-(patch and tests: `upstream/coredns-crd-plugin/`).
+(patch and tests: `tools/coredns-dropzero/`).
 
 ## Scripts
 
@@ -202,6 +202,6 @@ It prints, for the edge DNS and each region's CoreDNS, the region of the first a
 | no Freight right after `make up` | the Warehouse is still on its first discovery (1-3 min): `make freight-sync` waits for it |
 | a failed stage is re-promoted and nothing happens | a Freight a stage already holds is not promoted again: `./scripts/promote.sh kubernetes <region> <version> upgrade` |
 | a region does not come back to DNS after restore | the k8gb operator may have stopped reconciling the `Gslb`: `kubectl --context k3d-test-gslb1 -n k8gb rollout restart deploy/k8gb` |
-| a server restart-loops with `No help topic for '/bin/k3d-entrypoint.sh'` | a `Plan` without the k3d workaround overwrote `/bin/sh` (`upstream/k3s-upgrade-k3d.md`): `make down up` |
+| a server restart-loops with `No help topic for '/bin/k3d-entrypoint.sh'` | a `Plan` without the k3d workaround overwrote `/bin/sh` (NOTES.md section 8): `make down up` |
 
 `make reset` puts rotation and Kargo back at the start but keeps the Kubernetes version; `make down` removes everything this repo created.

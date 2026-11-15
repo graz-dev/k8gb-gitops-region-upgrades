@@ -98,25 +98,22 @@ make down               # removes everything this repo created
 
 ## Findings for k8gb
 
-What running this showed, each with measurements and a draft in [`upstream/`](upstream/) (nothing has been filed):
+What running this showed, with the measurements in [NOTES.md](NOTES.md). Candidates for upstream contributions:
 
 1. **`weight: 0` does not take a region out of DNS.** The CoreDNS plugin returns every record and only orders them (zero weights last); through a
    parent DNS that reorders, the region is still first a third of the time. The weighting library already has a "drop zero weights" mode that the
-   plugin hard-codes off. A small patch with tests makes it a Corefile option (`loadbalance weight dropzero`):
-   [`upstream/k8gb-wrr-drop-zero-weights.md`](upstream/k8gb-wrr-drop-zero-weights.md).
+   plugin hard-codes off. A small patch with tests makes it a Corefile option (`loadbalance weight dropzero`, default unchanged):
+   [`tools/coredns-dropzero/`](tools/coredns-dropzero/), tried live in the demo (NOTES.md §1, §6).
 2. **`failover` with three regions** returns only the primary: draining one region also takes the third one out. It splits the drained
    region's traffic over the others only when the drained region is the primary *and unhealthy*, which cannot be verified while drained.
-   `weight: 0` + `dropzero` divides it by weight for any number of regions (`scripts/k8gb-three-regions.sh` measures all modes).
+   `weight: 0` + `dropzero` divides it by weight for any number of regions (`scripts/k8gb-three-regions.sh` measures all modes; NOTES.md §10).
 3. **The drain does not cover the nameserver role.** A k8gb that answers NXDOMAIN made the edge return NXDOMAIN for every query even with its
-   region out of rotation; there is no declarative way to drop a cluster's nameserver from the delegation:
-   [`upstream/k8gb-zonedelegation-drain.md`](upstream/k8gb-zonedelegation-drain.md).
-4. **The operator stopped reconciling a `Gslb` twice** (only the `ZoneDelegation` loop kept logging) until restarted; cause not found.
+   region out of rotation; there is no declarative way to drop a cluster's nameserver from the delegation (NOTES.md §5).
+4. **The operator stopped reconciling a `Gslb` twice** (only the `ZoneDelegation` loop kept logging) until restarted; cause not found (NOTES.md §6).
 5. **Local setup**: k8gb's k3d configs pin the k3s image, so a demo cannot start at an older Kubernetes without copying them; the setup installs
    Istio and the retired ingress-nginx unconditionally.
 
-Not k8gb, same run: a bug in `k3s-upgrade` that breaks k3d clusters with a node label ([`upstream/k3s-upgrade-k3d.md`](upstream/k3s-upgrade-k3d.md),
-worked around in the `Plan`s) and how Kargo's `argocd-update` behaves ([`upstream/kargo-argocd-update.md`](upstream/kargo-argocd-update.md)).
-More detail and numbers: [NOTES.md](NOTES.md).
+Nothing has been filed upstream.
 
 ## Limits
 
@@ -136,7 +133,7 @@ gitops/      what Argo CD syncs: gslb/rotation.yaml (the single source of truth 
 kargo/       the shared drain/restore task (with the interlock), verification templates, the project: one Warehouse and nine stages
 scripts/     make's helpers; DEMO.md explains each
 bootstrap/   pinned versions and Helm values for Argo CD, Kargo, Gitea
-upstream/    drafts and a tested patch for k8gb, Kargo and k3s
+tools/       the probe image and the CoreDNS patch (`dropzero`) used by the k8gb experiments
 evidence/    raw output of the runs behind the numbers
 k8gb/        k8gb's own repo at a pinned commit (cloned by make, gitignored, never modified)
 ```

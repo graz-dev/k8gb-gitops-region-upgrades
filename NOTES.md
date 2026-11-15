@@ -326,7 +326,7 @@ when it does not.
 * Kubernetes does not support a downgrade, so `make reset` keeps the version overlay in Git
   (`KEEP_VERSIONS=1`); use `make down && make up` to start again.
 * Demo-grade security: Git credentials over HTTP, admin accounts, a long-lived read-only verifier token.
-* Nothing was filed upstream: `upstream/` holds drafts and a tested patch.
+* Nothing was filed upstream; the tested CoreDNS patch is in `tools/coredns-dropzero/`.
 
 ## 8. Kubernetes upgrade with System Upgrade Controller
 
@@ -335,7 +335,7 @@ when it does not.
   Plans in Git, applied by Argo CD, make the Kubernetes version a declared per-region setting. The Kargo
   Freight is the `rancher/k3s-upgrade` image tag. Tried first on a throwaway k3d cluster: v1.36.2 → v1.37.2
   in about 50 s, the server first, the agent after (its Plan waits for the server's).
-* **Bug in `k3s-upgrade` on k8gb's clusters** (`upstream/k3s-upgrade-k3d.md`): its script finds the k3s
+* **Bug in `k3s-upgrade` on k8gb's clusters** (k3s-upgrade, not k8gb): its script finds the k3s
   process by looking for "k3s" in the *parent's* command line. k8gb's clusters start with
   `--node-label svccontroller.k3s.cattle.io/enablelb=true`, which matches, so it takes `/bin/sh` for the k3s
   binary and overwrites it; the node container then restart-loops with `No help topic for
