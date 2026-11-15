@@ -58,7 +58,7 @@ with `loadbalance weight dropzero` it leaves, and the others share by weight (24
 
 With this a drain is a one-line weight change and works for **any number of regions**. Today the
 demo has to use the `failover` strategy pinned to the other region, which works for two regions only.
-Tried live in the demo with a CoreDNS image built from the patch: see `NOTES.md`, "weight with dropzero".
+Tried live in the demo with a CoreDNS image built from the patch: see `NOTES.md` section 6 ("`weight: 0` with the patched CoreDNS") and `evidence/three-regions-spike/modes.txt`.
 
 ## Open questions for maintainers
 

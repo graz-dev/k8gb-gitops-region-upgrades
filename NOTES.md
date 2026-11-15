@@ -7,7 +7,7 @@ Section numbers are referenced from code comments.
 
 ## 1. `weight: 0` does NOT take a region out of DNS rotation (changes the design)
 
-CLAUDE.md assumed k8gb's weighted round robin with `weight: 0` removes a region
+The first plan for this demo assumed k8gb's weighted round robin with `weight: 0` removes a region
 from DNS answers. **It does not.**
 
 Experiment: Gslb with `strategy.type: roundRobin`, `weight: {eu: 0, us: 1}`,
