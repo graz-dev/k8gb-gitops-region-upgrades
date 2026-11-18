@@ -123,7 +123,6 @@ spec:
               - name: k8s-us
                 sources:
                   - repoURL: ${{ vars.repoURL }}
-                    desiredRevision: ${{ outputs.commit.commit }}
                     updateTargetRevision: false
         # The Argo CD health shown right after the sync can still be the one from BEFORE the Plans
         # changed, so it is not trusted: ask the region's API server (read-only token) until every

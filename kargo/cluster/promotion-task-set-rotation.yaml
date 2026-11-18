@@ -88,15 +88,12 @@ spec:
           - name: gslb-eu
             sources:
               - repoURL: ${{ vars.repoURL }}
-                desiredRevision: ${{ task.outputs['commit'].commit }}
                 updateTargetRevision: false
           - name: gslb-us
             sources:
               - repoURL: ${{ vars.repoURL }}
-                desiredRevision: ${{ task.outputs['commit'].commit }}
                 updateTargetRevision: false
           - name: gslb-cz
             sources:
               - repoURL: ${{ vars.repoURL }}
-                desiredRevision: ${{ task.outputs['commit'].commit }}
                 updateTargetRevision: false

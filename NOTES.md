@@ -82,7 +82,7 @@ One project, `kubernetes`; the drain/restore stages are generic (they only call 
 `ClusterPromotionTask`) and could drive any other pipeline; only `<region>-upgrade` and the Warehouse are
 specific to Kubernetes. Each stage is verified by an Argo Rollouts `AnalysisRun` (a Job in the Kargo project namespace):
 `dns-region-absent`, `gateway-smoke`, `dns-region-present`. The node check of the upgrade is a Promotion step
-(§8). The Argo CD sync is Kargo's own `argocd-update` pinned to the commit it just pushed.
+(§8). The Argo CD sync is Kargo's own `argocd-update`, **without** `desiredRevision` (see below).
 
 Branches are a choice for readability, not safety: nothing in the shape keeps two regions from
 draining at once, which would leave nobody serving. The `set-rotation` task therefore carries an
@@ -96,10 +96,18 @@ was Healthy again. Not tested: two drains started at the same instant (a race be
 
 ### What works upstream, as designed
 
-`argocd-update` with a pinned `desiredRevision` plus Verification works **because the Verification
-starts right after the Promotion, while the pins are still valid**. After later commits the Stage's
-health check goes stale (the Application's observed revision moved on) and the Stage shows unhealthy
-afterwards; that is cosmetic, the Freight is already verified.
+`argocd-update` with a pinned `desiredRevision` works for the Promotion, but Kargo keeps re-checking the pin as the Stage's health: it compares the
+Application's `status.sync.revision` with the commit. Argo CD sets that field to the HEAD of the tracked branch whatever the app's path is (checked: an
+unrelated commit moved every Application, with or without the `manifest-generate-paths` annotation), so **any later commit on the branch**, from another
+stage, another region or anyone, turns every earlier Stage `Unhealthy` (`pkg/health/checker/builtin/argocd.go`). It also happens with one folder per
+Stage on the same branch; a branch per Stage avoids it. Here the drain/restore stages of all regions share one Application and one branch by design
+(`rotation.yaml` is one state), so it showed on every stage but the last.
+
+What we do: `argocd-update` **without** `desiredRevision`. Then Kargo registers no revision check (an empty desired revision is skipped) and the Stage health
+is just "the Application is Healthy and Synced". The price is that the step no longer verifies which commit was synced and, in principle, can sync the previous
+one (it hard-refreshes and syncs; the race we saw earlier). That is covered by `automated` sync on the Applications (they converge to HEAD anyway) and by the
+checks that matter for correctness, which do not depend on the pin: the drain/restore Verification polls the DNS, and the upgrade Promotion polls the nodes.
+Tested: a full branch (drain, upgrade, restore) of cz, then unrelated commits on the branch: all three stages stayed `Healthy`.
 
 ### What does not, and the workarounds
 

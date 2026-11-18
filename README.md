@@ -74,7 +74,8 @@ Design points worth knowing:
   a second drain is refused, and the drain waits for the other regions' Applications to be healthy.
 - **A failed upgrade fails loudly.** The node check is a step of the Promotion, not a Verification: Kargo only verifies a Stage that is
   healthy, and Argo CD's health can be stale right after a sync. The region stays drained.
-- **Argo CD uses `automated` sync with `prune` + `selfHeal`**, because Kargo's `argocd-update` never prunes.
+- **Argo CD uses `automated` sync with `prune` + `selfHeal`**, because Kargo's `argocd-update` never prunes, and `argocd-update` is used without
+  `desiredRevision`: with it, every later commit on the branch turns earlier stages `Unhealthy` (NOTES.md §3).
 - Git is an in-cluster Gitea (no GitHub token needed). Podinfo is only the workload to protect.
 
 ## Run it
@@ -124,7 +125,6 @@ Nothing has been filed upstream.
 - k3d hides what a real upgrade has: HA control plane and etcd, add-on and API compatibility, real network distances. The `Plan`s carry a k3d-only workaround.
 - Three regions at most were tried. Docker may change container IPs when nodes restart; `scripts/refresh-addresses.sh` repairs what that breaks.
 - Demo-grade security: Git credentials over HTTP, admin accounts, a long-lived read-only token for the node check.
-- Kargo shows the drain stage as `Unhealthy` after later stages commit (its health check is pinned to its own commit). Cosmetic.
 
 ## Layout
 
